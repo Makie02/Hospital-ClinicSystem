@@ -1,5 +1,5 @@
 // src/components/Layout.jsx
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import Dashboard from "./Dashboard";
@@ -14,8 +14,10 @@ import Laboratory from "./Laboratory";
 import Billing from "./Billing";
 import IPD from "./Ipd";
 import Inventory from "./Inventory";
-import MaintenanceSettings from "../Maintenance/Maintenancesettings";
+
+// ✅ Single correct import — MaintenanceAll is the combined maintenance page
 import MaintenanceAll from "../Maintenance/Maintenancesettings";
+
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { ShieldAlert, LogOut } from "lucide-react";
@@ -25,23 +27,19 @@ const PAGE_KEY = "medicore_active_page";
 
 // ─── Page Registry ────────────────────────────────────────────────────────────
 const PAGE_REGISTRY = {
-  dashboard:    { component: Dashboard,           label: "Dashboard"            },
-  patients:     { component: Patients,            label: "Patients"             },
-  appointments: { component: Appointments,        label: "Appointments"         },
-  doctors:      { component: Doctors,             label: "Doctors"              },
-  records:      { component: MedicalRecords,      label: "Medical Records"      },
-  pharmacy:     { component: Pharmacy,            label: "Pharmacy"             },
-  lab:          { component: Laboratory,          label: "Laboratory"           },
-  billing:      { component: Billing,             label: "Billing"              },
-  ipd:          { component: IPD,                 label: "I.P.D. Center"        },
-  inventory:    { component: Inventory,           label: "Inventory & Stock"    },
-  settings:     { component: null,                label: "Settings"             },
-  users:        { component: UserManagement,      label: "User Management"      },
-  maintenance:  { component: MaintenanceSettings, label: "Maintenance Settings" },
-  maintenanceAll:  { component: MaintenanceAll, label: "MaintenanceAll" },
-
-
-  
+  dashboard:    { component: Dashboard,      label: "Dashboard"            },
+  patients:     { component: Patients,       label: "Patients"             },
+  appointments: { component: Appointments,   label: "Appointments"         },
+  doctors:      { component: Doctors,        label: "Doctors"              },
+  records:      { component: MedicalRecords, label: "Medical Records"      },
+  pharmacy:     { component: Pharmacy,       label: "Pharmacy"             },
+  lab:          { component: Laboratory,     label: "Laboratory"           },
+  billing:      { component: Billing,        label: "Billing"              },
+  ipd:          { component: IPD,            label: "I.P.D. Center"        },
+  inventory:    { component: Inventory,      label: "Inventory & Stock"    },
+  settings:     { component: null,           label: "Settings"             },
+  users:        { component: UserManagement, label: "User Management"      },
+  maintenance:  { component: MaintenanceAll, label: "Maintenance Settings" },
 };
 
 const VALID_PAGES = new Set(Object.keys(PAGE_REGISTRY));
@@ -58,30 +56,21 @@ function savePage(pageId) {
   try { localStorage.setItem(PAGE_KEY, pageId); } catch {}
 }
 
-// ─── Determine the correct initial page synchronously ─────────────────────────
-// Called once during useState initializer — no async, no flash.
 function resolveInitialPage(profile) {
   const saved = readSavedPage();
-
-  // No profile yet (edge case) — just use saved or dashboard
   if (!profile) return saved || "dashboard";
-
   const canAccess = (id) => {
     if (!id || !VALID_PAGES.has(id)) return false;
     if (profile.role === "superadmin") return true;
     return Array.isArray(profile.modules) && profile.modules.includes(id);
   };
-
-  // Saved page is valid for this user → use it
   if (saved && canAccess(saved)) return saved;
-
-  // Saved page exists but user can't access it → use their first allowed module
   const fallback = profile.modules?.[0] || "dashboard";
   savePage(fallback);
   return fallback;
 }
 
-// ─── Loading screen (only shown when AuthContext hasn't resolved yet) ─────────
+// ─── Loading screen ───────────────────────────────────────────────────────────
 function LoadingScreen() {
   const { isDark: D } = useTheme();
   return (
@@ -96,9 +85,7 @@ function LoadingScreen() {
         borderTopColor: "#3b82f6",
         animation: "spin .8s linear infinite",
       }} />
-      <p style={{ margin: 0, fontSize: 13, color: "#475569", fontFamily: "system-ui" }}>
-        Loading…
-      </p>
+      <p style={{ margin: 0, fontSize: 13, color: "#475569", fontFamily: "system-ui" }}>Loading…</p>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -159,33 +146,25 @@ const PlaceholderPage = ({ name }) => {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Layout() {
-  const { profile, loading, hasAccess, isSuspended, logout } = useAuth();
+  const { profile, loading, isSuspended, logout } = useAuth();
   const { isDark } = useTheme();
 
-  // ✅ FIX 1: Resolve the correct initial page SYNCHRONOUSLY using profile
-  // that was already loaded from localStorage in AuthContext.
-  // No useEffect needed — this runs once and is always correct.
   const [activePage, setActivePage] = useState(() => resolveInitialPage(profile));
 
-  // ✅ FIX 2: Re-validate only when profile changes AFTER initial render
-  // (e.g. Firebase returns fresh data that differs from cached data)
   useEffect(() => {
     if (!profile) return;
-
     const canAccess = (id) => {
       if (!id || !VALID_PAGES.has(id)) return false;
       if (profile.role === "superadmin") return true;
       return Array.isArray(profile.modules) && profile.modules.includes(id);
     };
-
     if (!canAccess(activePage)) {
       const fallback = profile.modules?.[0] || "dashboard";
       setActivePage(fallback);
       savePage(fallback);
     }
-  }, [profile?.uid, profile?.role]); // only re-run if user identity changes
+  }, [profile?.uid, profile?.role]);
 
-  // ✅ Navigate — always persist
   const handleNavigate = (pageId) => {
     if (!VALID_PAGES.has(pageId)) return;
     setActivePage(pageId);
@@ -194,12 +173,7 @@ export default function Layout() {
 
   const handleGoToAppointments = () => handleNavigate("appointments");
 
-  // ✅ FIX 3: Guard against null profile — show loader, not broken UI.
-  // With AuthContext fix this should be near-instant (<1 frame) from cache,
-  // but keep it as a safety net.
   if (loading || !profile) return <LoadingScreen />;
-
-  // ✅ FIX 4: Guard isSuspended() — only call when profile is not null
   if (isSuspended()) return <SuspendedWall logout={logout} />;
 
   const renderPage = () => {

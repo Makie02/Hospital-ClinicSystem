@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    background-color: #060d12;
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #085660; border-radius: 9999px; }
+}
+
+@layer utilities {
+  .grid-bg {
+    background-image: linear-gradient(to right, rgba(14,143,150,0.06) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(14,143,150,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .shimmer-text {
+    background: linear-gradient(110deg, #0e8f96 0%, #5ec9cc 30%, #fff 50%, #5ec9cc 70%, #0e8f96 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 3s linear infinite;
+  }
+  .glass {
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .glass-card {
+    background: rgba(14,143,150,0.05);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(14,143,150,0.15);
+  }
+  .glow-teal {
+    box-shadow: 0 0 40px rgba(14,143,150,0.2), 0 0 80px rgba(14,143,150,0.05);
+  }
+  .active-nav {
+    background: linear-gradient(90deg, rgba(14,143,150,0.2) 0%, rgba(14,143,150,0.05) 100%);
+    border-left: 2px solid #0e8f96;
+  }
+}
+
+@keyframes shimmer {
+  from { background-position: 0 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+.animate-fade-in { animation: fadeIn 0.5s ease forwards; }
+.animate-slide-up { animation: slideUp 0.4s ease forwards; }
+.animate-float { animation: float 3s ease-in-out infinite; }
